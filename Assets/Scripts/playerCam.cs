@@ -35,4 +35,14 @@ public class playerCam : MonoBehaviour
         _orientation.rotation = Quaternion.Euler(0, _yRotation, 0);
 
     }
+
+    public void DoFov(float endValue)
+    {
+
+    }
+
+    public void DoTilt(float zTilt)
+    {
+
+    }
 }
