@@ -13,10 +13,14 @@ public class playerMovement : MonoBehaviour
     private float _desiredMoveSpeed;
     private float _lastDesiredMoveSpeed;
 
+    [SerializeField] float _wallRunSpeed;
+
     [SerializeField] float _speedIncreaseMultiplier;
     [SerializeField] float _slopeIncreaseMultiplier;
 
     [SerializeField] float _groundDrag;
+
+    public bool wallrunning;
 
     [Header("Jumping")]
     [SerializeField] float _jumpForce;
@@ -28,7 +32,7 @@ public class playerMovement : MonoBehaviour
     [SerializeField] float _crouchSpeed;
     [SerializeField] float _crouchYScale;
     private float _startYScale;
-    bool crouching;
+    public bool crouching;
 
     [Header("Keybinds")]
     [SerializeField] KeyCode _jumpKey = KeyCode.Space;
@@ -38,7 +42,7 @@ public class playerMovement : MonoBehaviour
     [Header("Ground Check")]
     [SerializeField] float _playerHeight;
     [SerializeField] LayerMask _whatIsGround;
-    bool grounded;
+    public bool grounded;
 
     [Header("Slope Handling")]
     public float _maxSlopeAngle;
@@ -63,6 +67,7 @@ public class playerMovement : MonoBehaviour
         sprinting,
         crouching,
         sliding,
+        wallrunning,
         air
     }
 
@@ -105,6 +110,13 @@ public class playerMovement : MonoBehaviour
 
     private void StateHandler()
     {
+        //Wallrunning Engaged
+        if (wallrunning)
+        {
+            state = MovementState.wallrunning;
+            _desiredMoveSpeed = _wallRunSpeed;
+        }
+
         //Sliding Engaged
         if (sliding)
         {
