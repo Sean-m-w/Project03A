@@ -18,6 +18,13 @@ public class playerWallRunning : MonoBehaviour
     private float _horizontalInput;
     private float _verticalInput;
 
+    //Look into seeing if these public values can be Serialized.
+    [Header("Limitations")]
+    public bool _doJumpOnEndOfTimer = false;
+    public bool _resetDoubleJumpsOnNewWall = true;
+    public bool _resetDoubleJumpsOnEveryWall = false;
+    public int _allowedWallJumps = 1;
+
     [Header("Detection")]
     [SerializeField] float _wallCheckDistance;
     [SerializeField] float _minJumpHeight;
@@ -34,23 +41,40 @@ public class playerWallRunning : MonoBehaviour
     [Header("Gravity")]
     public bool useGravity;
     [SerializeField] float _gravityCounterForce;
+    [SerializeField] float _yDrossleSpeed;
 
     [Header("References")]
     [SerializeField] Transform _orientation;
+    public playerCam _cam;
     private playerMovement pm;
     private Rigidbody rb;
+
+    private bool _wallRemembered;
+    private Transform _lastWall;
+
+    private int _wallJumpsDone;
 
     // Start is called before the first frame update
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         pm = GetComponent<playerMovement>();
+
+        if (_whatIsWall.value == 0)
+            _whatIsWall = LayerMask.GetMask("Default");
+
+        if (_whatIsGround.value == 0)
+            _whatIsGround = LayerMask.GetMask("Default");
     }
 
     private void Update()
     {
         CheckForWall();
         StateMachine();
+
+        //If grounded, next wall is a new one
+        if (pm.grounded && _lastWall != null)
+            _lastWall = null;
     }
 
     private void FixedUpdate()
@@ -66,6 +90,45 @@ public class playerWallRunning : MonoBehaviour
         _wallRight = Physics.Raycast(transform.position, _orientation.right, out _rightWallHit, _wallCheckDistance, _whatIsWall);
         _wallLeft = Physics.Raycast(transform.position, -_orientation.right, out _leftWallHit, _wallCheckDistance, _whatIsWall);
 
+        //Reset readyToClimb and wallJumps whenever player hits a new wall
+        if ((_wallLeft || _wallRight) && NewWallHit())
+        {
+            _wallJumpsDone = 0;
+            _wallRunTimer = _maxWallRunTime;
+        }
+    }
+
+    private void RememberLastWall()
+    {
+        if (_wallLeft)
+        {
+            _lastWall = _leftWallHit.transform;
+        }
+
+        if (_wallRight)
+        {
+            _lastWall = _rightWallHit.transform;
+        }
+    }
+
+    private bool NewWallHit()
+    {
+        if (_lastWall == null)
+        {
+            return true;
+        }
+
+        if (_wallLeft && _leftWallHit.transform != _lastWall)
+        {
+            return true;
+        }
+
+        else if (_wallRight && _rightWallHit.transform != _lastWall)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private bool AboveGround()
@@ -89,15 +152,18 @@ public class playerWallRunning : MonoBehaviour
             }
 
             //Wallrun timer
-            if(_wallRunTimer > 0)
-            {
-                _wallRunTimer -= Time.deltaTime;
-            }
+            _wallRunTimer -= Time.deltaTime;
 
-            if(_wallRunTimer <= 0 && pm.wallrunning)
+            if (_wallRunTimer < 0 && pm.wallrunning)
             {
-                exitingWall = true;
-                _exitWallTimer = _exitWallTime;
+                if (_doJumpOnEndOfTimer)
+                    WallJump();
+
+                else
+                {
+                    exitingWall = true;
+                    _exitWallTimer = _exitWallTime;
+                }
             }
 
             //Wall jump
@@ -134,6 +200,9 @@ public class playerWallRunning : MonoBehaviour
                 StopWallRun();
             }
         }
+
+        if (!exitingWall && pm.restricted)
+            pm.restricted = false;
     }
 
     private void StartWallRun()
@@ -142,7 +211,22 @@ public class playerWallRunning : MonoBehaviour
 
         _wallRunTimer = _maxWallRunTime;
 
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.useGravity = useGravity;
+
+        //rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+
+        _wallRemembered = false;
+
+        //Apply camera effects
+        _cam.DoFov(90f);
+        if (_wallLeft)
+        {
+            _cam.DoTilt(-5f);
+        }
+        if (_wallRight)
+        {
+            _cam.DoTilt(5f);
+        }
     }
 
     private void WallRunningMovement()
@@ -158,6 +242,17 @@ public class playerWallRunning : MonoBehaviour
             wallForward = -wallForward;
         }
 
+        float velY = rb.velocity.y;
+
+        ///Is this smoothing needed?
+        if (!useGravity)
+        {
+            if (velY > 0)
+                velY -= _yDrossleSpeed;
+
+            rb.velocity = new Vector3(rb.velocity.x, velY, rb.velocity.z);
+        }
+
         //Forward force
         rb.AddForce(wallForward * _wallRunForce, ForceMode.Force);
 
@@ -170,11 +265,24 @@ public class playerWallRunning : MonoBehaviour
         {
             rb.AddForce(transform.up * _gravityCounterForce, ForceMode.Force);
         }
+
+        //Remember previous wall
+        if (!_wallRemembered)
+        {
+            RememberLastWall();
+            _wallRemembered = true;
+        }
     }
 
     private void StopWallRun()
     {
+        rb.useGravity = true;
+
         pm.wallrunning = false;
+
+        //Reset camera effect
+        _cam.DoFov(80f);
+        _cam.DoTilt(0f);
     }
 
     private void WallJump()
@@ -187,8 +295,18 @@ public class playerWallRunning : MonoBehaviour
 
         Vector3 forceToApply = transform.up * _wallJumpUpForce + wallNormal * _wallJumpSideForce;
 
+        //Double Jump
+        bool firstJump = _wallJumpsDone < _allowedWallJumps;
+        _wallJumpsDone++;
+
+        // if not first jump, remove y component of force
+        if (!firstJump)
+            forceToApply = new Vector3(forceToApply.x, 0f, forceToApply.z);
+
         //Reset Y velocity and add force
         rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         rb.AddForce(forceToApply, ForceMode.Impulse);
+
+        RememberLastWall();
     }
 }

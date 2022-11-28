@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TF2.physicsExtension;
 
 public class playerMovement : MonoBehaviour
 {
@@ -59,6 +60,10 @@ public class playerMovement : MonoBehaviour
     Rigidbody rb;
 
     public bool sliding;
+    public bool restricted;
+
+    //EXPERIMENTAL
+    //private float _fallMultiplier = 2f;
 
     public MovementState state;
     public enum MovementState
@@ -68,6 +73,7 @@ public class playerMovement : MonoBehaviour
         crouching,
         sliding,
         wallrunning,
+        restricted,
         air
     }
 
@@ -105,11 +111,26 @@ public class playerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        MovePlayer();
+        if(state != MovementState.restricted)
+        {
+            MovePlayer();
+        }
+
+        //EXPERIMENTAL
+        /*if (rb.velocity.y < 0)
+        {
+            rb.velocity += Vector3.up * Physics.gravity.y * _fallMultiplier * Time.deltaTime;
+        }*/
     }
 
     private void StateHandler()
     {
+        //Restricted
+        if (restricted)
+        {
+            state = MovementState.restricted;
+        }
+
         //Wallrunning Engaged
         if (wallrunning)
         {
@@ -286,6 +307,9 @@ public class playerMovement : MonoBehaviour
         }
     }
 
+    //public Transform _markerSphere;
+    //public float _maxJumpHeight;
+
     void Jump()
     {
         _exitingSlope = true;
@@ -293,7 +317,11 @@ public class playerMovement : MonoBehaviour
         //Reset Y velocity
         rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
 
+        //Old jump force calculation
         rb.AddForce(transform.up * _jumpForce, ForceMode.Impulse);
+
+        //New jump force calculation, using a physicsExtension
+        //rb.velocity = physicsExtension.CalculateJumpVelocity(transform.position, _markerSphere.position, _maxJumpHeight);
     }
 
     void ResetJump()
