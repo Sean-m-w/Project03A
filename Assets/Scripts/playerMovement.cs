@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using TF2.physicsExtension;
 
 public class playerMovement : MonoBehaviour
 {
@@ -28,6 +27,7 @@ public class playerMovement : MonoBehaviour
     [SerializeField] float _jumpCooldown;
     [SerializeField] float _airMultiply;
     bool readyToJump;
+    bool canDoubleJump;
 
     [Header("Crouching")]
     [SerializeField] float _crouchSpeed;
@@ -44,6 +44,7 @@ public class playerMovement : MonoBehaviour
     [SerializeField] float _playerHeight;
     [SerializeField] LayerMask _whatIsGround;
     public bool grounded;
+    //public bool airBourne;
 
     [Header("Slope Handling")]
     public float _maxSlopeAngle;
@@ -63,8 +64,11 @@ public class playerMovement : MonoBehaviour
     public bool restricted;
 
     //EXPERIMENTAL
-    //private float _fallMultiplier = 2f;
-
+    /*
+    private int _currentJump = 0;
+    private int _totalJump = 2;
+    */
+    
     public MovementState state;
     public enum MovementState
     {
@@ -84,6 +88,7 @@ public class playerMovement : MonoBehaviour
         rb.freezeRotation = true;
 
         readyToJump = true;
+        canDoubleJump = false;
 
         _startYScale = transform.localScale.y;
     }
@@ -115,12 +120,6 @@ public class playerMovement : MonoBehaviour
         {
             MovePlayer();
         }
-
-        //EXPERIMENTAL
-        /*if (rb.velocity.y < 0)
-        {
-            rb.velocity += Vector3.up * Physics.gravity.y * _fallMultiplier * Time.deltaTime;
-        }*/
     }
 
     private void StateHandler()
@@ -197,16 +196,33 @@ public class playerMovement : MonoBehaviour
         _verticalInput = Input.GetAxisRaw("Vertical");
 
         //When to jump
-        if(Input.GetKeyDown(_jumpKey) && readyToJump && grounded)
+        if (Input.GetKeyDown(_jumpKey) && readyToJump && grounded)
+        {
+            readyToJump = true;
+
+            Jump();
+
+            //_currentJump++;
+
+            //Invoke(nameof(ResetJump), _jumpCooldown);
+        }
+
+        
+        if (Input.GetKeyDown(_jumpKey) && readyToJump && !grounded)
         {
             readyToJump = false;
 
             Jump();
 
-            Invoke(nameof(ResetJump), _jumpCooldown);
+            //Invoke(nameof(ResetJump), _jumpCooldown);
         }
 
-        //TO-DO - Impliment toggle sprint, like in Titanfall 2.
+        //Will limit to just two jumps, but does not work with wall jumps.
+        if(readyToJump == false && grounded == true)
+        {
+            Invoke(nameof(ResetJump), _jumpCooldown);
+        }
+        
 
         //Start crouching
         if (Input.GetKeyDown(_crouchKey) && _horizontalInput == 0 && _verticalInput == 0)
@@ -310,23 +326,22 @@ public class playerMovement : MonoBehaviour
     //public Transform _markerSphere;
     //public float _maxJumpHeight;
 
-    void Jump()
+    public void Jump()
     {
         _exitingSlope = true;
 
         //Reset Y velocity
         rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
 
-        //Old jump force calculation
+        //Jump force calculation
         rb.AddForce(transform.up * _jumpForce, ForceMode.Impulse);
-
-        //New jump force calculation, using a physicsExtension
-        //rb.velocity = physicsExtension.CalculateJumpVelocity(transform.position, _markerSphere.position, _maxJumpHeight);
     }
 
     void ResetJump()
     {
         readyToJump = true;
+
+        canDoubleJump = true;
 
         _exitingSlope = false;
     }

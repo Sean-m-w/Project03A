@@ -23,7 +23,7 @@ public class playerWallRunning : MonoBehaviour
     public bool _doJumpOnEndOfTimer = false;
     public bool _resetDoubleJumpsOnNewWall = true;
     public bool _resetDoubleJumpsOnEveryWall = false;
-    public int _allowedWallJumps = 1;
+    public int _allowedWallJumps = 2;
 
     [Header("Detection")]
     [SerializeField] float _wallCheckDistance;

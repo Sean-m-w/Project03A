@@ -350,12 +350,12 @@ MonoBehaviour:
   _whatIsGround:
     serializedVersion: 2
     m_Bits: 128
-  _wallRunForce: 200
-  _wallJumpUpForce: 7
-  _wallJumpSideForce: 14
-  _maxWallRunTime: 4
+  _wallRunForce: 300
+  _wallJumpUpForce: 8
+  _wallJumpSideForce: 30
+  _maxWallRunTime: 2
   _jumpKey: 32
-  _doJumpOnEndOfTimer: 0
+  _doJumpOnEndOfTimer: 1
   _resetDoubleJumpsOnNewWall: 1
   _resetDoubleJumpsOnEveryWall: 0
   _allowedWallJumps: 1
@@ -363,7 +363,7 @@ MonoBehaviour:
   _minJumpHeight: 2
   _exitWallTime: 0.2
   useGravity: 1
-  _gravityCounterForce: 20
+  _gravityCounterForce: 25
   _yDrossleSpeed: 0
   _orientation: {fileID: 1066058290}
   _cam: {fileID: 647266879}
