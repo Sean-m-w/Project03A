@@ -7,6 +7,7 @@ public class playerSliding : MonoBehaviour
     [Header("References")]
     public Transform _orientation;
     public Transform _playerObj;
+    public playerCam cam;
     private Rigidbody rb;
     private playerMovement pm;
 
@@ -58,6 +59,9 @@ public class playerSliding : MonoBehaviour
         rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
 
         _slideTimer = _maxSlideTime;
+
+        cam.DoFov(50f);
+        cam.DoTilt(4);
     }
 
     private void SlidingMovement()
@@ -87,5 +91,8 @@ public class playerSliding : MonoBehaviour
         pm.sliding = false;
 
         _playerObj.localScale = new Vector3(_playerObj.localScale.x, _startYScale, _playerObj.localScale.z);
+
+        cam.DoFov(60);
+        cam.DoTilt(0);
     }
 }
