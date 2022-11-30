@@ -9,6 +9,7 @@ public class playerMovement : MonoBehaviour
     [SerializeField] float _walkSpeed;
     [SerializeField] float _sprintSpeed;
     [SerializeField] float _slideSpeed;
+    [SerializeField] float _swingSpeed;
     private float _desiredMoveSpeed;
     private float _lastDesiredMoveSpeed;
     [SerializeField] float _wallRunSpeed;
@@ -63,6 +64,8 @@ public class playerMovement : MonoBehaviour
     
     public int _currentJump = 0;
     public int _totalJump = 1;
+
+    public bool swinging;
     
     
     public MovementState state;
@@ -70,6 +73,7 @@ public class playerMovement : MonoBehaviour
     {
         walking,
         sprinting,
+        swinging,
         crouching,
         sliding,
         wallrunning,
@@ -132,6 +136,12 @@ public class playerMovement : MonoBehaviour
 
             else
                 _desiredMoveSpeed = _sprintSpeed;
+        }
+
+        else if (swinging)
+        {
+            state = MovementState.swinging;
+            _moveSpeed = _swingSpeed;
         }
 
         //Crouching Engaged
@@ -286,6 +296,11 @@ public class playerMovement : MonoBehaviour
 
     void MovePlayer()
     {
+        if (swinging)
+        {
+            return;
+        }
+
         //Calculate movement direction
         _moveDirection = _orientation.forward * _verticalInput + _orientation.right * _horizontalInput;
 

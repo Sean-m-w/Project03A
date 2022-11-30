@@ -10,6 +10,7 @@ public class playerWallRunning : MonoBehaviour
     [SerializeField] float _wallRunForce;
     [SerializeField] float _wallJumpUpForce;
     [SerializeField] float _wallJumpSideForce;
+    [SerializeField] float _wallJumpForwardForce;
     [SerializeField] float _maxWallRunTime;
     private float _wallRunTimer;
 
@@ -50,8 +51,6 @@ public class playerWallRunning : MonoBehaviour
 
     private bool _wallRemembered;
     private Transform _lastWall;
-
-    private int _wallJumpsDone;
 
     // Start is called before the first frame update
     void Start()
@@ -101,7 +100,6 @@ public class playerWallRunning : MonoBehaviour
         //Reset readyToClimb and wallJumps whenever player hits a new wall
         if ((_wallLeft || _wallRight) && NewWallHit())
         {
-            _wallJumpsDone = 0;
             _wallRunTimer = _maxWallRunTime;
         }
     }
@@ -233,7 +231,7 @@ public class playerWallRunning : MonoBehaviour
         _wallRemembered = false;
 
         //Apply camera effects
-        _cam.DoFov(90f);
+        _cam.DoFov(80f);
         if (_wallLeft)
         {
             _cam.DoTilt(-5f);
@@ -285,7 +283,7 @@ public class playerWallRunning : MonoBehaviour
         pm.wallrunning = false;
 
         //Reset camera effect
-        _cam.DoFov(80f);
+        _cam.DoFov(60f);
         _cam.DoTilt(0f);
     }
 
@@ -294,13 +292,10 @@ public class playerWallRunning : MonoBehaviour
         //Enter exitingWall state
         exitingWall = true;
 
-        //EXPERIMENTAL
         pm.readyToJump = true;
 
         _exitWallTimer = _exitWallTime;
 
-        
-        //EXPERIMENTAL
         if (Input.GetKeyDown(_jumpKey) && (pm._currentJump != pm._totalJump))
         {
             pm.Jump();
@@ -315,7 +310,7 @@ public class playerWallRunning : MonoBehaviour
         Vector3 forceToApply = transform.up * _wallJumpUpForce + wallNormal * _wallJumpSideForce;
 
         //Reset Y velocity and add force
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.velocity = new Vector3(rb.velocity.x, 0f, 30f);
         rb.AddForce(forceToApply, ForceMode.Impulse);
 
         RememberLastWall();
