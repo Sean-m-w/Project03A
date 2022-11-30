@@ -41,7 +41,6 @@ public class playerWallRunning : MonoBehaviour
     [Header("Gravity")]
     public bool useGravity;
     [SerializeField] float _gravityCounterForce;
-    [SerializeField] float _yDrossleSpeed;
 
     [Header("References")]
     [SerializeField] Transform _orientation;
@@ -60,11 +59,13 @@ public class playerWallRunning : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         pm = GetComponent<playerMovement>();
 
+        
         if (_whatIsWall.value == 0)
             _whatIsWall = LayerMask.GetMask("Default");
 
         if (_whatIsGround.value == 0)
             _whatIsGround = LayerMask.GetMask("Default");
+        
     }
 
     private void Update()
@@ -72,9 +73,16 @@ public class playerWallRunning : MonoBehaviour
         CheckForWall();
         StateMachine();
 
+        /*
         //If grounded, next wall is a new one
         if (pm.grounded && _lastWall != null)
             _lastWall = null;
+        */
+
+        if (_lastWall != null)
+        {
+            _lastWall = null;
+        }
     }
 
     private void FixedUpdate()
@@ -152,9 +160,13 @@ public class playerWallRunning : MonoBehaviour
             }
 
             //Wallrun timer
-            _wallRunTimer -= Time.deltaTime;
+            if (_wallRunTimer > 0)
+            {
+                _wallRunTimer -= Time.deltaTime;
+            }
 
-            if (_wallRunTimer < 0 && pm.wallrunning)
+            //If timer less than or equal to 0 and wallrunning, and if timer ends, then WallJump. Else, exiting wall is true and timer resets.
+            if (_wallRunTimer <= 0 && pm.wallrunning)
             {
                 if (_doJumpOnEndOfTimer)
                     WallJump();
@@ -170,6 +182,9 @@ public class playerWallRunning : MonoBehaviour
             if (Input.GetKeyDown(_jumpKey))
             {
                 WallJump();
+
+                //EXPERIMENTAL
+                //pm._currentJump++;
             }
         }
 
@@ -200,14 +215,14 @@ public class playerWallRunning : MonoBehaviour
                 StopWallRun();
             }
         }
-
-        if (!exitingWall && pm.restricted)
-            pm.restricted = false;
     }
 
     private void StartWallRun()
     {
         pm.wallrunning = true;
+
+        //EXPERIMENTAL
+        pm._currentJump = 0;
 
         _wallRunTimer = _maxWallRunTime;
 
@@ -240,17 +255,6 @@ public class playerWallRunning : MonoBehaviour
         if((_orientation.forward - wallForward).magnitude > (_orientation.forward - -wallForward).magnitude)
         {
             wallForward = -wallForward;
-        }
-
-        float velY = rb.velocity.y;
-
-        ///Is this smoothing needed?
-        if (!useGravity)
-        {
-            if (velY > 0)
-                velY -= _yDrossleSpeed;
-
-            rb.velocity = new Vector3(rb.velocity.x, velY, rb.velocity.z);
         }
 
         //Forward force
@@ -289,19 +293,26 @@ public class playerWallRunning : MonoBehaviour
     {
         //Enter exitingWall state
         exitingWall = true;
+
+        //EXPERIMENTAL
+        pm.readyToJump = true;
+
         _exitWallTimer = _exitWallTime;
+
+        
+        //EXPERIMENTAL
+        if (Input.GetKeyDown(_jumpKey) && (pm._currentJump != pm._totalJump))
+        {
+            pm.Jump();
+        }
+        if (Input.GetKeyDown(_jumpKey) && (pm._currentJump > 2))
+        {
+            pm.readyToJump = false;
+        }
 
         Vector3 wallNormal = _wallRight ? _rightWallHit.normal : _leftWallHit.normal;
 
         Vector3 forceToApply = transform.up * _wallJumpUpForce + wallNormal * _wallJumpSideForce;
-
-        //Double Jump
-        bool firstJump = _wallJumpsDone < _allowedWallJumps;
-        _wallJumpsDone++;
-
-        // if not first jump, remove y component of force
-        if (!firstJump)
-            forceToApply = new Vector3(forceToApply.x, 0f, forceToApply.z);
 
         //Reset Y velocity and add force
         rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);

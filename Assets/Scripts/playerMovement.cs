@@ -9,16 +9,14 @@ public class playerMovement : MonoBehaviour
     [SerializeField] float _walkSpeed;
     [SerializeField] float _sprintSpeed;
     [SerializeField] float _slideSpeed;
-
     private float _desiredMoveSpeed;
     private float _lastDesiredMoveSpeed;
-
     [SerializeField] float _wallRunSpeed;
-
     [SerializeField] float _speedIncreaseMultiplier;
     [SerializeField] float _slopeIncreaseMultiplier;
-
     [SerializeField] float _groundDrag;
+
+    private bool sprinting;
 
     public bool wallrunning;
 
@@ -26,8 +24,7 @@ public class playerMovement : MonoBehaviour
     [SerializeField] float _jumpForce;
     [SerializeField] float _jumpCooldown;
     [SerializeField] float _airMultiply;
-    bool readyToJump;
-    bool canDoubleJump;
+    public bool readyToJump;
 
     [Header("Crouching")]
     [SerializeField] float _crouchSpeed;
@@ -44,7 +41,6 @@ public class playerMovement : MonoBehaviour
     [SerializeField] float _playerHeight;
     [SerializeField] LayerMask _whatIsGround;
     public bool grounded;
-    //public bool airBourne;
 
     [Header("Slope Handling")]
     public float _maxSlopeAngle;
@@ -64,10 +60,10 @@ public class playerMovement : MonoBehaviour
     public bool restricted;
 
     //EXPERIMENTAL
-    /*
-    private int _currentJump = 0;
-    private int _totalJump = 2;
-    */
+    
+    public int _currentJump = 0;
+    public int _totalJump = 1;
+    
     
     public MovementState state;
     public enum MovementState
@@ -77,7 +73,6 @@ public class playerMovement : MonoBehaviour
         crouching,
         sliding,
         wallrunning,
-        restricted,
         air
     }
 
@@ -88,7 +83,6 @@ public class playerMovement : MonoBehaviour
         rb.freezeRotation = true;
 
         readyToJump = true;
-        canDoubleJump = false;
 
         _startYScale = transform.localScale.y;
     }
@@ -116,20 +110,11 @@ public class playerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if(state != MovementState.restricted)
-        {
-            MovePlayer();
-        }
+        MovePlayer();
     }
 
     private void StateHandler()
     {
-        //Restricted
-        if (restricted)
-        {
-            state = MovementState.restricted;
-        }
-
         //Wallrunning Engaged
         if (wallrunning)
         {
@@ -157,7 +142,7 @@ public class playerMovement : MonoBehaviour
         }
 
         //Sprinting Engaged
-        else if (grounded && Input.GetKey(_sprintKey))
+        else if (sprinting)
         {
             state = MovementState.sprinting;
             _desiredMoveSpeed = _sprintSpeed;
@@ -196,49 +181,79 @@ public class playerMovement : MonoBehaviour
         _verticalInput = Input.GetAxisRaw("Vertical");
 
         //When to jump
-        if (Input.GetKeyDown(_jumpKey) && readyToJump && grounded)
+        if (Input.GetKeyDown(_jumpKey) && (readyToJump) && (!wallrunning))
         {
             readyToJump = true;
 
             Jump();
 
-            //_currentJump++;
+            _currentJump++;
 
-            //Invoke(nameof(ResetJump), _jumpCooldown);
+            if (_currentJump == _totalJump)
+            {
+                readyToJump = false;
+            }
         }
 
-        
-        if (Input.GetKeyDown(_jumpKey) && readyToJump && !grounded)
-        {
-            readyToJump = false;
-
-            Jump();
-
-            //Invoke(nameof(ResetJump), _jumpCooldown);
-        }
-
-        //Will limit to just two jumps, but does not work with wall jumps.
-        if(readyToJump == false && grounded == true)
+        if (grounded)
         {
             Invoke(nameof(ResetJump), _jumpCooldown);
         }
-        
 
         //Start crouching
         if (Input.GetKeyDown(_crouchKey) && _horizontalInput == 0 && _verticalInput == 0)
         {
-            transform.localScale = new Vector3(transform.localScale.x, _crouchYScale, transform.localScale.z);
-            rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
+            //Stand up
+            if (crouching)
+            {
+                transform.localScale = new Vector3(transform.localScale.x, _startYScale, transform.localScale.z);
 
-            crouching = true;
+                crouching = false;
+            }
+
+            //Crouch
+            else
+            {
+                transform.localScale = new Vector3(transform.localScale.x, _crouchYScale, transform.localScale.z);
+                rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
+                crouching = true;
+            }
         }
 
-        //Stop crouching
-        if (Input.GetKeyUp(_crouchKey))
+        //Start sprinting
+        if (Input.GetKeyDown(_sprintKey) && grounded)
         {
-            transform.localScale = new Vector3(transform.localScale.x, _startYScale, transform.localScale.z);
+            //If crouching, return to standing position.
+            if (crouching)
+            {
+                transform.localScale = new Vector3(transform.localScale.x, _startYScale, transform.localScale.z);
 
-            crouching = false;
+                crouching = false;
+            }
+
+            //If already sprinting, stop sprinting.
+            if (sprinting)
+            {
+                _desiredMoveSpeed = _walkSpeed;
+
+                sprinting = false;
+            }
+
+            //Otherwise, if not sprinting, begin sprinting.
+            else
+            {
+                _desiredMoveSpeed = _sprintSpeed;
+
+                sprinting = true;
+            }
+        }
+
+        //If attempting to go backwards, stop sprinting.
+        if (Input.GetKeyDown(KeyCode.S) && grounded)
+        {
+            _desiredMoveSpeed = _walkSpeed;
+
+            sprinting = false;
         }
     }
 
@@ -323,9 +338,6 @@ public class playerMovement : MonoBehaviour
         }
     }
 
-    //public Transform _markerSphere;
-    //public float _maxJumpHeight;
-
     public void Jump()
     {
         _exitingSlope = true;
@@ -341,9 +353,9 @@ public class playerMovement : MonoBehaviour
     {
         readyToJump = true;
 
-        canDoubleJump = true;
-
         _exitingSlope = false;
+
+        _currentJump = 0;
     }
 
     public bool OnSlope()
