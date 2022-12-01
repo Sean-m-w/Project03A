@@ -148,7 +148,7 @@ public class playerWallRunning : MonoBehaviour
         _horizontalInput = Input.GetAxisRaw("Horizontal");
         _verticalInput = Input.GetAxisRaw("Vertical");
 
-        //State 1 - Wallrunning
+        //Mode01 - Wallrunning
         if((_wallLeft || _wallRight) && _verticalInput > 0 && AboveGround() && !exitingWall)
         {
             //Start wallrunning
@@ -180,13 +180,10 @@ public class playerWallRunning : MonoBehaviour
             if (Input.GetKeyDown(_jumpKey))
             {
                 WallJump();
-
-                //EXPERIMENTAL
-                //pm._currentJump++;
             }
         }
 
-        //State 2 - Exiting
+        //Mode02 - Exiting
         else if (exitingWall)
         {
             if (pm.wallrunning)
@@ -205,7 +202,7 @@ public class playerWallRunning : MonoBehaviour
             }
         }
 
-        //State 3 - None
+        //Mode03 - None
         else
         {
             if (pm.wallrunning)
@@ -221,6 +218,10 @@ public class playerWallRunning : MonoBehaviour
 
         //EXPERIMENTAL
         pm._currentJump = 0;
+
+        pm._secondJumpSound.enabled = false;
+        pm._firstJumpSound.enabled = false;
+        pm._wallRunningSound.enabled = true;
 
         _wallRunTimer = _maxWallRunTime;
 
@@ -281,6 +282,12 @@ public class playerWallRunning : MonoBehaviour
         rb.useGravity = true;
 
         pm.wallrunning = false;
+
+        pm._firstJumpSound.enabled = true;
+
+        pm._wallRunningSound.enabled = false;
+
+        pm._currentJump = 0;
 
         //Reset camera effect
         _cam.DoFov(60f);

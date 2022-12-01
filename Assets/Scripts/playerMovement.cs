@@ -18,6 +18,7 @@ public class playerMovement : MonoBehaviour
     [SerializeField] float _groundDrag;
 
     private bool sprinting;
+    private bool walking;
 
     public bool wallrunning;
 
@@ -66,8 +67,14 @@ public class playerMovement : MonoBehaviour
     public int _totalJump = 1;
 
     public bool swinging;
-    
-    
+
+    public AudioSource _walkingSound;
+    public AudioSource _slidingSound;
+    public AudioSource _sprintSound;
+    public AudioSource _wallRunningSound;
+    public AudioSource _firstJumpSound;
+    public AudioSource _secondJumpSound;
+
     public MovementState state;
     public enum MovementState
     {
@@ -131,6 +138,8 @@ public class playerMovement : MonoBehaviour
         {
             state = MovementState.sliding;
 
+            _slidingSound.enabled = true;
+
             if (OnSlope() && rb.velocity.y < 0.1f)
                 _desiredMoveSpeed = _slideSpeed;
 
@@ -190,6 +199,16 @@ public class playerMovement : MonoBehaviour
         _horizontalInput = Input.GetAxisRaw("Horizontal");
         _verticalInput = Input.GetAxisRaw("Vertical");
 
+        if (walking && ((Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D))))
+        {
+            _walkingSound.enabled = true;
+        }
+        /*
+        if (walking && !((Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D))))
+        {
+            _walkingSound.enabled = false;
+        }
+        */
         //When to jump
         if (Input.GetKeyDown(_jumpKey) && (readyToJump) && (!wallrunning))
         {
@@ -197,17 +216,21 @@ public class playerMovement : MonoBehaviour
 
             Jump();
 
+            _firstJumpSound.enabled = true;
+
             _currentJump++;
 
             if (_currentJump == _totalJump)
             {
                 readyToJump = false;
+                _secondJumpSound.enabled = true;
             }
         }
 
         if (grounded)
         {
             Invoke(nameof(ResetJump), _jumpCooldown);
+            _secondJumpSound.enabled = false;
         }
 
         //Start crouching
@@ -247,6 +270,7 @@ public class playerMovement : MonoBehaviour
                 _desiredMoveSpeed = _walkSpeed;
 
                 sprinting = false;
+                //_sprintSound.enabled = false;
             }
 
             //Otherwise, if not sprinting, begin sprinting.
@@ -255,6 +279,7 @@ public class playerMovement : MonoBehaviour
                 _desiredMoveSpeed = _sprintSpeed;
 
                 sprinting = true;
+                //_sprintSound.enabled = true;
             }
         }
 
@@ -269,7 +294,7 @@ public class playerMovement : MonoBehaviour
 
     private IEnumerator SmoothlyLerpMoveSpeed()
     {
-        //Smoothly lerp movement speed to desired value
+        //Gradually adjust movement to desired value.
         float time = 0;
         float difference = Mathf.Abs(_desiredMoveSpeed - _moveSpeed);
         float startValue = _moveSpeed;
